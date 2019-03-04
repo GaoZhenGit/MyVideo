@@ -1,4 +1,4 @@
-package com.codetend.myvideo;
+package com.codetend.myvideo.video;
 
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
@@ -6,11 +6,14 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.SurfaceView;
 
+import com.codetend.myvideo.FFmpegManager;
+
 public class CameraThread extends Thread implements Camera.PreviewCallback {
 
     private Camera mCamera;
     private SurfaceView mSurfaceView;
     private Camera.Size mSize;
+    private int mDataSize;
     private Looper mLooper;
 
     public void setSurfaceView(SurfaceView surfaceView) {
@@ -22,7 +25,7 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
         Looper.prepare();
         mLooper = Looper.myLooper();
         init();
-        FFmpegManager.getInstance().startEncoder(mSize.width, mSize.height);
+        FFmpegManager.getInstance().start(mSize.width, mSize.height, "/sdcard/demo.mpeg");
         mCamera.startPreview();
         Looper.loop();
     }
@@ -34,12 +37,13 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
             parameters.setPreviewFormat(ImageFormat.NV21);
             parameters.setAutoWhiteBalanceLock(true);
-            mSize = parameters.getSupportedPreviewSizes().get(0);
+            mSize = parameters.getSupportedPreviewSizes().get(6);
             parameters.setPreviewSize(mSize.width, mSize.height);
             mCamera.setParameters(parameters);
             mCamera.setDisplayOrientation(90);
             mCamera.setPreviewCallbackWithBuffer(this);
-            byte[] data = new byte[mSize.width * mSize.height * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8];
+            mDataSize = mSize.width * mSize.height * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8;
+            byte[] data = new byte[mDataSize];
             mCamera.addCallbackBuffer(data);
             mCamera.setPreviewDisplay(mSurfaceView.getHolder());
         } catch (Throwable t) {
@@ -55,25 +59,32 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
         if (mLooper != null) {
             mLooper.quit();
         }
+        FFmpegManager.getInstance().endEncode();
     }
 
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
         Log.i("CameraThread", "onPreviewFrame");
         camera.addCallbackBuffer(data);
+        byte[] nv12 = new byte[data.length];
+        splitYuv(data, nv12, mSize.width, mSize.height, mDataSize);
+        FFmpegManager.getInstance().enqueueFrame(nv12);
     }
 
-    private void swapNV21ToNV12(byte[] nv21, byte[] nv12, int width, int height) {
-        if (nv21 == null || nv12 == null) return;
+    /**
+     * 分离yuv中的uv分量，将u分量和v分量放在按照顺序连续排列，而非交叉
+     * @param nv21
+     * @param nv12
+     * @param width
+     * @param height
+     * @param dataSize
+     */
+    private void splitYuv(byte[] nv21, byte[] nv12, int width, int height, int dataSize) {
         int framesize = width * height;
-        int i = 0, j = 0;
         System.arraycopy(nv21, 0, nv12, 0, framesize);
-        for (j = 0; j < framesize / 2; j += 2) {
-            nv12[framesize + j + 1] = nv21[j + framesize];
-        }
-
-        for (j = 0; j < framesize / 2; j += 2) {
-            nv12[framesize + j] = nv21[j + framesize + 1];
+        for (int i = 0; i < framesize / 4; i++) {
+            nv12[i + framesize] = nv21[2 * i + framesize];
+            nv12[i + framesize + framesize / 4] = nv21[2 * i + framesize + 1];
         }
     }
 }

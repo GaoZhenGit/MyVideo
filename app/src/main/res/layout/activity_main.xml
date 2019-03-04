@@ -43,6 +43,13 @@
             android:onClick="stopPreview"
             android:text="stop" />
 
+        <Button
+            android:id="@+id/test"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="test"
+            android:text="test" />
     </LinearLayout>
 
 
