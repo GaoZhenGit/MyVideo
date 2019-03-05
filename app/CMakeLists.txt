@@ -5,7 +5,9 @@ find_library(android-lib android)
 
 add_library(native-lib
         SHARED
-        src/main/cpp/native-lib.cpp )
+        src/main/cpp/native-lib.cpp
+        src/main/cpp/data_queue.h
+        )
 
 add_library(avutil
         SHARED
