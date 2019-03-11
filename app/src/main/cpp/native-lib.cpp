@@ -13,22 +13,30 @@
 
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 #include <libavutil/opt.h>
 #include <unistd.h>
+#include "muxer.h"
+
+#define TIME_BASE_FIELD 30
 long getCurrentTime() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
-const AVCodec *codec;
+AVCodec *codec;
 AVCodecContext *codecContext = NULL;
+AVFormatContext *formatContext = NULL;
+AVOutputFormat *fmt = NULL;
+AVStream *video_stream = NULL;
 AVFrame *frame;
 AVPacket *pkt;
 FILE *ofd = NULL;
 int pts_i;
 int64_t base_time;
 int queue_running = 0;
+AVDictionary *opt = NULL;
 data_queue *tail = NULL, *head = NULL;
 pthread_t comsume_thread;
 
@@ -39,11 +47,27 @@ Java_com_codetend_myvideo_FFmpegManager_startEncoder(
         JNIEnv *env, jobject instance, jint width, jint height, jstring file_name) {
     pts_i = 0;
     base_time = 0;
+    const char *output_file_name = env->GetStringUTFChars(file_name, 0);
 
-    codec = avcodec_find_encoder(AV_CODEC_ID_MPEG4);
-    if (!codec) {
-        LOGE("encoder not found");
+    //为读写文件生成formatContext
+    avformat_alloc_output_context2(&formatContext, NULL, NULL, output_file_name);
+    if (!formatContext) {
+        LOGE("Could not deduce output format from file extension %s: using MPEG.\n", avcodec_get_name(codecContext->codec_id));
+        avformat_alloc_output_context2(&formatContext, NULL, "mpeg", output_file_name);
+    }
+    if (!formatContext) {
+        LOGE("Could not deduce output format from file extension MPEG fail \n");
         return -1;
+    }
+    av_dict_set_int(&opt, "video_track_timescale", TIME_BASE_FIELD, 0);
+    fmt = formatContext->oformat;
+    //如果文件后缀的codec找到了，再开始初始化
+    codec = avcodec_find_encoder(fmt->video_codec);
+    if (!codec) {
+        LOGE("encoder:%s not found", avcodec_get_name(fmt->video_codec));
+        return -1;
+    } else {
+        LOGI("encoder:%s used!", avcodec_get_name(fmt->video_codec));
     }
     codecContext = avcodec_alloc_context3(codec);
     if (!codecContext) {
@@ -63,8 +87,8 @@ Java_com_codetend_myvideo_FFmpegManager_startEncoder(
     codecContext->width = width;
     codecContext->height = height;
     /* frames per second */
-    codecContext->time_base = (AVRational) {1, 25};
-    codecContext->framerate = (AVRational) {25, 1};
+    codecContext->time_base = (AVRational) {1, TIME_BASE_FIELD};
+    codecContext->framerate = (AVRational) {TIME_BASE_FIELD, 1};
 
     /* emit one intra frame every ten frames
      * check frame pict_type before passing frame
@@ -90,16 +114,36 @@ Java_com_codetend_myvideo_FFmpegManager_startEncoder(
         return -1;
     }
     LOGI("encoder ready!");
-    const char *output_file_name = env->GetStringUTFChars(file_name, 0);
-    ofd = fopen(output_file_name, "wb");
-    env->ReleaseStringUTFChars(file_name, output_file_name);
-    if (!ofd) {
-        LOGE("file open fail");
+    // 打开读写文件
+//    ofd = fopen(output_file_name, "wb");
+//    if (!ofd) {
+//        LOGE("file open fail");
+//        return -1;
+//    } else {
+//        LOGI("file open success");
+//    }
+    if (fmt->video_codec != AV_CODEC_ID_NONE) {
+        video_stream = add_video_steam(formatContext, codecContext);
+        LOGI("add steam success:%s", avcodec_get_name(fmt->video_codec));
+    }
+    av_dump_format(formatContext, 0, output_file_name, 1);
+    /* open the output file, if needed */
+    if (!(fmt->flags & AVFMT_NOFILE)) {
+        ret = avio_open(&formatContext->pb, output_file_name, AVIO_FLAG_WRITE);
+        if (ret < 0) {
+            LOGE("Could not open '%s': %s\n", output_file_name, av_err2str(ret));
+            return -1;
+        }
+        LOGI("avio_open success");
+    }
+    ret = avformat_write_header(formatContext, &opt);
+    LOGI("write header success");
+    if (ret < 0) {
+        LOGE("Error occurred when opening output file:%d, %s\n", ret,av_err2str(ret));
         return -1;
-    } else {
-        LOGI("file open success");
     }
 
+    env->ReleaseStringUTFChars(file_name, output_file_name);
     pthread_create(&comsume_thread, NULL, consume, 0);
     return 1;
 }
@@ -107,7 +151,7 @@ Java_com_codetend_myvideo_FFmpegManager_startEncoder(
 static void encode(AVCodecContext *enc_ctx, AVFrame *frame, AVPacket *pkt,
                    FILE *outfile) {
     int ret;
-//    usleep(1000*400);
+//    usleep(1000*50);
     ret = avcodec_send_frame(enc_ctx, frame);
     if (ret < 0) {
         LOGE("Error sending a frame for encoding\n");
@@ -129,7 +173,13 @@ static void encode(AVCodecContext *enc_ctx, AVFrame *frame, AVPacket *pkt,
             LOGE("Error during encoding\n");
         } else {
             LOGI("pkt write:%d", pkt->pts);
-            fwrite(pkt->data, 1, pkt->size, outfile);
+//            fwrite(pkt->data, 1, pkt->size, outfile);
+            if (frame) {
+                ret = write_frame(formatContext, &codecContext->time_base, video_stream, pkt);
+                if (ret < 0) {
+                    LOGE("write frame fail:%d,%s", ret, av_err2str(ret));
+                }
+            }
         }
         av_packet_unref(pkt);
     }
@@ -171,7 +221,7 @@ void *consume(void *) {
             frame->data[0] = tail->data; //PCM Data
             frame->data[1] = tail->data + y_size * 5 / 4; // V
             frame->data[2] = tail->data + y_size; // U
-            frame->pts = pts_i * 2;
+            frame->pts = pts_i;
             pts_i++;
             encode(codecContext, frame, pkt, ofd);
             free_data(node);
@@ -181,16 +231,29 @@ void *consume(void *) {
     }
     /* flush the encoder */
     encode(codecContext, NULL, pkt, ofd);
+    //写入文件尾部
+    av_write_trailer(formatContext);
+    LOGI("write trailer success");
+    if (!(fmt->flags & AVFMT_NOFILE)) {
+        /* Close the output file. */
+        avio_closep(&formatContext->pb);
+        LOGI("avio_closep success");
+    }
 
-    uint8_t endcode[] = {0, 0, 1, 0xb7};
+//    uint8_t endcode[] = {0, 0, 1, 0xb7};
     /* add sequence end code to have a real MPEG file */
-    fwrite(endcode, 1, sizeof(endcode), ofd);
-    fclose(ofd);
+//    fwrite(endcode, 1, sizeof(endcode), ofd);
+//    fclose(ofd);
 
     avcodec_free_context(&codecContext);
     codecContext = NULL;
     av_frame_free(&frame);
     av_packet_free(&pkt);
+    avformat_free_context(formatContext);
+    formatContext = NULL;
+    fmt = NULL;
+    av_dict_free(&opt);
+    opt = NULL;
     LOGI("end encode!");
     return NULL;
 }

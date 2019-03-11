@@ -25,7 +25,7 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
         Looper.prepare();
         mLooper = Looper.myLooper();
         init();
-        FFmpegManager.getInstance().start(mSize.width, mSize.height, "/sdcard/demo.mpeg");
+        FFmpegManager.getInstance().start(mSize.width, mSize.height, "/sdcard/demo.avi");
         mCamera.startPreview();
         Looper.loop();
     }
@@ -37,7 +37,7 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
             parameters.setPreviewFormat(ImageFormat.NV21);
             parameters.setAutoWhiteBalanceLock(true);
-            mSize = parameters.getSupportedPreviewSizes().get(6);
+            mSize = parameters.getSupportedPreviewSizes().get(9);
             parameters.setPreviewSize(mSize.width, mSize.height);
             mCamera.setParameters(parameters);
             mCamera.setDisplayOrientation(90);
