@@ -64,10 +64,10 @@ Java_com_codetend_myvideo_FFmpegManager_startEncoder(
     //如果文件后缀的codec找到了，再开始初始化
     codec = avcodec_find_encoder(fmt->video_codec);
     if (!codec) {
-        LOGE("encoder:%s not found", avcodec_get_name(fmt->video_codec));
+        LOGE("encoder:%d, %s not found", fmt->video_codec, avcodec_get_name(fmt->video_codec));
         return -1;
     } else {
-        LOGI("encoder:%s used!", avcodec_get_name(fmt->video_codec));
+        LOGI("encoder:%d, %s used!", fmt->video_codec, avcodec_get_name(fmt->video_codec));
     }
     codecContext = avcodec_alloc_context3(codec);
     if (!codecContext) {
@@ -108,7 +108,7 @@ Java_com_codetend_myvideo_FFmpegManager_startEncoder(
          codecContext->height);
 
     /* open it */
-    int ret = avcodec_open2(codecContext, codec, NULL);
+    int ret = avcodec_open2(codecContext, codec, &opt);
     if (ret < 0) {
         LOGE("Could not open codec:%d,%s", ret, av_err2str(ret));
         return -1;
@@ -132,6 +132,8 @@ Java_com_codetend_myvideo_FFmpegManager_startEncoder(
         ret = avio_open(&formatContext->pb, output_file_name, AVIO_FLAG_WRITE);
         if (ret < 0) {
             LOGE("Could not open '%s': %s\n", output_file_name, av_err2str(ret));
+            avcodec_free_context(&codecContext);
+            codecContext = NULL;
             return -1;
         }
         LOGI("avio_open success");

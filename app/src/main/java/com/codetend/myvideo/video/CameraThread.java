@@ -8,6 +8,8 @@ import android.view.SurfaceView;
 
 import com.codetend.myvideo.FFmpegManager;
 
+import java.util.List;
+
 public class CameraThread extends Thread implements Camera.PreviewCallback {
 
     private Camera mCamera;
@@ -30,14 +32,28 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
         Looper.loop();
     }
 
+    public static List<Camera.Size> getSupportPreviewSize() {
+        Camera camera = Camera.open(0);
+        Camera.Parameters parameters = camera.getParameters();
+        List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
+        camera.release();
+        return sizes;
+    }
+
+    public void setPreviewSize(Camera.Size size) {
+        mSize = size;
+    }
+
     private void init() {
         try {
             mCamera = Camera.open(0);
             Camera.Parameters parameters = mCamera.getParameters();
-            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
             parameters.setPreviewFormat(ImageFormat.NV21);
             parameters.setAutoWhiteBalanceLock(true);
-            mSize = parameters.getSupportedPreviewSizes().get(9);
+            if (mSize == null) {
+                mSize = parameters.getSupportedPreviewSizes().get(9);
+            }
             parameters.setPreviewSize(mSize.width, mSize.height);
             mCamera.setParameters(parameters);
             mCamera.setDisplayOrientation(90);
