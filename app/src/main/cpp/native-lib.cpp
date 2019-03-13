@@ -3,13 +3,8 @@
 #include <android/log.h>
 #include <pthread.h>
 #include "data_queue.h"
+#include "log_util.h"
 
-#define TAG "ffnative" // 这个是自定义的LOG的标识
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG,TAG ,__VA_ARGS__) // 定义LOGD类型
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
-#define LOGW(...) __android_log_print(ANDROID_LOG_WARN,TAG ,__VA_ARGS__) // 定义LOGW类型
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,TAG ,__VA_ARGS__) // 定义LOGE类型
-#define LOGF(...) __android_log_print(ANDROID_LOG_FATAL,TAG ,__VA_ARGS__) // 定义LOGF类型
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -104,6 +99,7 @@ Java_com_codetend_myvideo_FFmpegManager_startEncoder(
         av_opt_set(codecContext->priv_data, "preset", "slow", 0);
     }
     av_opt_set(codecContext->priv_data, "preset", "superfast", 0);
+    av_opt_set(codecContext->priv_data, "tune", "zerolatency", 0);
     LOGI("codec id: %d, width: %d, height :%d", codec->id, codecContext->width,
          codecContext->height);
 

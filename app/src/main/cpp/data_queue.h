@@ -4,8 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <android/log.h>
-#define TAG "ffnative" // 这个是自定义的LOG的标识
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
+#include "log_util.h"
 
 extern "C" {
 struct data_queue {
