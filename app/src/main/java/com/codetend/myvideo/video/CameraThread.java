@@ -91,7 +91,7 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
         if (mLooper != null) {
             mLooper.quit();
         }
-        FFmpegManager.getInstance().endEncode();
+        FFmpegManager.getInstance().endVideoEncode();
         mMainHandler.removeCallbacks(mRateCountLogger);
     }
     @Override

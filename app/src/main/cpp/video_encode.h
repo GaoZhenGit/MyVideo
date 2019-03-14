@@ -34,20 +34,18 @@ pthread_t consume_thread;
 #define TIME_BASE_FIELD 15
 
 JNIEXPORT jint JNICALL
-Java_com_codetend_myvideo_FFmpegManager_startEncoder(
+Java_com_codetend_myvideo_FFmpegManager_startVideoEncode(
         JNIEnv *env, jobject instance, jint width, jint height, jstring file_name);
 
 JNIEXPORT jint JNICALL
-Java_com_codetend_myvideo_FFmpegManager_onFrame(JNIEnv *env, jobject instance, jbyteArray data_);
+Java_com_codetend_myvideo_FFmpegManager_videoOnFrame(JNIEnv *env, jobject instance, jbyteArray data_);
 
 JNIEXPORT jint JNICALL
-Java_com_codetend_myvideo_FFmpegManager_endEncode(JNIEnv *env, jobject instance);
+Java_com_codetend_myvideo_FFmpegManager_endVideoEncode(JNIEnv *env, jobject instance);
 
 }
 
 void *consume(void *p);
-
-static void video_encode(AVCodecContext *enc_ctx, AVFrame *frame, AVPacket *pkt, FILE *outfile);
 
 //分离yuv中的uv分量，将u分量和v分量放在按照顺序连续排列，而非交叉
 static void splitYuv(uint8_t *nv21, uint8_t *nv12);

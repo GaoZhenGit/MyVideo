@@ -1,6 +1,6 @@
 #include "video_encode.h"
 
-jint Java_com_codetend_myvideo_FFmpegManager_startEncoder(
+jint Java_com_codetend_myvideo_FFmpegManager_startVideoEncode(
         JNIEnv *env, jobject instance, jint width, jint height, jstring file_name) {
     video_pts_i = 0;
     const char *output_file_name = env->GetStringUTFChars(file_name, 0);
@@ -111,7 +111,7 @@ jint Java_com_codetend_myvideo_FFmpegManager_startEncoder(
     return 1;
 }
 
-jint Java_com_codetend_myvideo_FFmpegManager_onFrame(JNIEnv *env, jobject instance, jbyteArray data_) {
+jint Java_com_codetend_myvideo_FFmpegManager_videoOnFrame(JNIEnv *env, jobject instance, jbyteArray data_) {
     if (!video_codec_context) {
         return -1;
     }
@@ -126,7 +126,7 @@ jint Java_com_codetend_myvideo_FFmpegManager_onFrame(JNIEnv *env, jobject instan
     return 1;
 }
 
-jint Java_com_codetend_myvideo_FFmpegManager_endEncode(JNIEnv *env, jobject instance) {
+jint Java_com_codetend_myvideo_FFmpegManager_endVideoEncode(JNIEnv *env, jobject instance) {
     //stop the thread
     queue_running = 0;
 //    /* flush the encoder */

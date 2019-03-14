@@ -1,9 +1,6 @@
 package com.codetend.myvideo;
 
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
 public class FFmpegManager {
 
     public static FFmpegManager getInstance() {
@@ -19,16 +16,16 @@ public class FFmpegManager {
     }
 
     public void start(final int width, int height, String fileName) {
-        startEncoder(width, height, fileName);
+        startVideoEncode(width, height, fileName);
     }
 
-    private native int startEncoder(int width, int height, String fileName);
+    private native int startVideoEncode(int width, int height, String fileName);
 
     public void enqueueFrame(byte[] data) {
-        onFrame(data);
+        videoOnFrame(data);
     }
 
-    private native int onFrame(byte[] data);
+    private native int videoOnFrame(byte[] data);
 
-    public native int endEncode();
+    public native int endVideoEncode();
 }
