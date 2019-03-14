@@ -32,7 +32,7 @@ int pts_i;
 int64_t base_time;
 int queue_running = 0;
 AVDictionary *opt = NULL;
-data_queue *tail = NULL, *head = NULL;
+data_queue *video_data_queue = NULL;
 pthread_t comsume_thread;
 
 void *consume(void *p);
@@ -142,6 +142,9 @@ Java_com_codetend_myvideo_FFmpegManager_startEncoder(
     }
 
     env->ReleaseStringUTFChars(file_name, output_file_name);
+
+    video_data_queue = create_data_queue();
+
     pthread_create(&comsume_thread, NULL, consume, 0);
     return 1;
 }
@@ -186,7 +189,7 @@ void *consume(void *) {
     queue_running = 1;
     int left = 1;
     while (queue_running || left) {
-        data_queue *node = pop(head, tail);
+        data_node *node = video_data_queue->pop();
         left = node != NULL;
         if (node) {
             LOGI("consume start");
@@ -221,7 +224,7 @@ void *consume(void *) {
             frame->pts = pts_i;
             pts_i++;
             encode(codecContext, frame, pkt, ofd);
-            free_data(node);
+            video_data_queue->free(node);
             long end = getCurrentTime() - start;
             LOGI("consume end:%d, pts:%d, spend:%d", pts_i, frame->pts, start);
         }
@@ -251,6 +254,7 @@ void *consume(void *) {
     fmt = NULL;
     av_dict_free(&opt);
     opt = NULL;
+    free_data_queue(video_data_queue);
     LOGI("end encode!");
     return NULL;
 }
@@ -273,7 +277,8 @@ Java_com_codetend_myvideo_FFmpegManager_onFrame(JNIEnv *env, jobject instance, j
     uint8_t *data = (uint8_t *) dataI;
     LOGI("=====================on frame start=====================");
     int data_size = codecContext->width * codecContext->height * 3 / 2;
-    add(head, tail, data, data_size, splitYuv);
+    video_data_queue->set_copy_fun(splitYuv);
+    video_data_queue->add(data, data_size);
     LOGI("=====================frame finish %d =====================", pts_i);
     env->ReleaseByteArrayElements(data_, dataI, 0);
     return 1;
@@ -298,6 +303,7 @@ Java_com_codetend_myvideo_FFmpegManager_endEncode(JNIEnv *env, jobject instance)
 //    LOGI("end encode!");
     void *tret;
     pthread_join(comsume_thread, &tret);
+    pthreadfr
     return 1;
 }
 

@@ -7,6 +7,7 @@ add_library(native-lib
         SHARED
         src/main/cpp/native-lib.cpp
         src/main/cpp/data_queue.h
+        src/main/cpp/data_queue.cpp
         src/main/cpp/muxer.h
         src/main/cpp/muxer.c
         )

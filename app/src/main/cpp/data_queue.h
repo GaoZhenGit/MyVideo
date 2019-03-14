@@ -4,57 +4,36 @@
 #ifndef MYVIDEO_DATA_QUEUE_H
 #define MYVIDEO_DATA_QUEUE_H
 
-extern "C" {
-
 #include <stdint.h>
 #include <string.h>
 #include <android/log.h>
-#include <malloc.h>
 
-struct data_queue {
-    data_queue *next;
+class data_node {
+public:
     uint8_t *data;
+    data_node *next;
 };
 
-static void add(data_queue *&head, data_queue *&tail, uint8_t *data, int data_size, void fun(uint8_t *,uint8_t *) = NULL) {
-    data_queue *self = (data_queue *) (malloc(sizeof(data_queue)));
-    self->data = (uint8_t *) malloc(data_size * sizeof(uint8_t));
-    self->next = NULL;
-    if (fun) {
-        fun(data, self->data);
-    } else {
-        memcpy(self->data, data, data_size);
-    }
-    if (!tail) {
-        tail = self;
-    } else {
-        tail->next = self;
-        tail = self;
-    }
-    if (!head) {
-        head = self;
-    }
-}
+class data_queue {
+private:
+    data_node *head = NULL;
+    data_node *tail = NULL;
+    void (*copy_fun)(uint8_t *, uint8_t *) = NULL;
+public:
+    uint16_t count = 0;
 
-static data_queue *pop(data_queue *&head, data_queue *&tail) {
-    if (!head) {
-        return NULL;
-    } else {
-        data_queue *ret = head;
-        head = head->next;
-        return ret;
-    }
-}
+    data_queue();
+    //设置增加节点时的复制函数，如果没有，就是用memcpy
+    void set_copy_fun(void (*copy_fun)(uint8_t *, uint8_t *));
+    //增加节点
+    void add(uint8_t *data, int data_size);
+    //弹出节点并移除
+    data_node *pop();
+    //节点内容回收
+    void free(data_node *&node);
+};
 
-static void free_data(data_queue *&node) {
-    if (node) {
-        free(node->data);
-        node->data = NULL;
-        free(node);
-        node = NULL;
-    }
-}
-
-}
+data_queue *create_data_queue();
+void free_data_queue(data_queue *&);
 
 #endif //MYVIDEO_DATA_QUEUE_H
