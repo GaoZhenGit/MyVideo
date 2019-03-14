@@ -149,7 +149,6 @@ Java_com_codetend_myvideo_FFmpegManager_startEncoder(
 static void encode(AVCodecContext *enc_ctx, AVFrame *frame, AVPacket *pkt,
                    FILE *outfile) {
     int ret;
-//    usleep(1000*50);
     ret = avcodec_send_frame(enc_ctx, frame);
     if (ret < 0) {
         LOGE("Error sending a frame for encoding\n");
@@ -216,9 +215,9 @@ void *consume(void *) {
             }
 
             int y_size = codecContext->width * codecContext->height;
-            frame->data[0] = tail->data; //PCM Data
-            frame->data[1] = tail->data + y_size * 5 / 4; // V
-            frame->data[2] = tail->data + y_size; // U
+            frame->data[0] = node->data; //PCM Data
+            frame->data[1] = node->data + y_size * 5 / 4; // V
+            frame->data[2] = node->data + y_size; // U
             frame->pts = pts_i;
             pts_i++;
             encode(codecContext, frame, pkt, ofd);
