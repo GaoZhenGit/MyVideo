@@ -16,11 +16,15 @@ struct data_queue {
     uint8_t *data;
 };
 
-static void add(data_queue *&head, data_queue *&tail, uint8_t *data, int data_size) {
+static void add(data_queue *&head, data_queue *&tail, uint8_t *data, int data_size, void fun(uint8_t *,uint8_t *) = NULL) {
     data_queue *self = (data_queue *) (malloc(sizeof(data_queue)));
     self->data = (uint8_t *) malloc(data_size * sizeof(uint8_t));
     self->next = NULL;
-    memcpy(self->data, data, data_size);
+    if (fun) {
+        fun(data, self->data);
+    } else {
+        memcpy(self->data, data, data_size);
+    }
     if (!tail) {
         tail = self;
     } else {

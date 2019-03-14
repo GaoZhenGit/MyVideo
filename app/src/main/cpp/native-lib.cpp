@@ -13,7 +13,7 @@ extern "C" {
 #include <unistd.h>
 #include "muxer.h"
 
-#define TIME_BASE_FIELD 30
+#define TIME_BASE_FIELD 15
 long getCurrentTime() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -211,7 +211,7 @@ void *consume(void *) {
             }
             ret = av_frame_make_writable(frame);
             if (ret < 0) {
-                LOGE("frame writeable fail");
+                LOGE("frame writeable fail:%d", av_err2str(ret));
             }
 
             int y_size = codecContext->width * codecContext->height;
@@ -254,6 +254,15 @@ void *consume(void *) {
     LOGI("end encode!");
     return NULL;
 }
+//分离yuv中的uv分量，将u分量和v分量放在按照顺序连续排列，而非交叉
+static void splitYuv(uint8_t *nv21, uint8_t *nv12) {
+    int framesize = codecContext->width * codecContext->height;
+    memcpy(nv12, nv21, framesize);
+    for (int i = 0; i < framesize / 4; i++) {
+        nv12[i + framesize] = nv21[2 * i + framesize];
+        nv12[i + framesize + framesize / 4] = nv21[2 * i + framesize + 1];
+    }
+}
 
 JNIEXPORT jint JNICALL
 Java_com_codetend_myvideo_FFmpegManager_onFrame(JNIEnv *env, jobject instance, jbyteArray data_) {
@@ -264,7 +273,7 @@ Java_com_codetend_myvideo_FFmpegManager_onFrame(JNIEnv *env, jobject instance, j
     uint8_t *data = (uint8_t *) dataI;
     LOGI("=====================on frame start=====================");
     int data_size = codecContext->width * codecContext->height * 3 / 2;
-    add(head, tail, data, data_size);
+    add(head, tail, data, data_size, splitYuv);
     LOGI("=====================frame finish %d =====================", pts_i);
     env->ReleaseByteArrayElements(data_, dataI, 0);
     return 1;
