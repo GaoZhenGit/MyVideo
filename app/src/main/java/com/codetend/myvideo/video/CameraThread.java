@@ -2,6 +2,7 @@ package com.codetend.myvideo.video;
 
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
+import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.SurfaceView;
@@ -17,6 +18,18 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
     private Camera.Size mSize;
     private int mDataSize;
     private Looper mLooper;
+
+    private int callbackCount = 0;
+    private int lastCount = 0;
+    private Handler mMainHandler = new Handler(Looper.getMainLooper());
+    private Runnable mRateCountLogger = new Runnable() {
+        @Override
+        public void run() {
+            Log.i("CameraThread", String.format("callback rate:%d,current:%d",(callbackCount - lastCount), callbackCount));
+            lastCount = callbackCount;
+            mMainHandler.postDelayed(this, 1000);
+        }
+    };
     private boolean rateCounterRunning = true;
 
     public void setSurfaceView(SurfaceView surfaceView) {
@@ -30,7 +43,7 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
         init();
         FFmpegManager.getInstance().start(mSize.width, mSize.height, "/sdcard/demo.avi");
         mCamera.startPreview();
-        t.start();
+        mMainHandler.post(mRateCountLogger);
         Looper.loop();
     }
 
@@ -60,7 +73,7 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
             parameters.setPreviewSize(mSize.width, mSize.height);
             mCamera.setParameters(parameters);
             mCamera.setDisplayOrientation(90);
-            mCamera.setPreviewCallback(this);
+            mCamera.setPreviewCallbackWithBuffer(this);
             mDataSize = mSize.width * mSize.height * ImageFormat.getBitsPerPixel(ImageFormat.NV21) / 8;
             byte[] data = new byte[mDataSize];
             mCamera.addCallbackBuffer(data);
@@ -78,38 +91,18 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
         if (mLooper != null) {
             mLooper.quit();
         }
-        rateCounterRunning = false;
         FFmpegManager.getInstance().endEncode();
+        mMainHandler.removeCallbacks(mRateCountLogger);
     }
-
-    private int callbackCount = 0;
-    private int lastCount = 0;
-    Thread t = new Thread() {
-        @Override
-        public void run() {
-            while (rateCounterRunning) {
-                try {
-                    Log.i("CameraThread", String.format("callback rate:%d,current:%d",(callbackCount - lastCount), callbackCount));
-                    lastCount = callbackCount;
-                    sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-        }
-    };
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
         Log.i("CameraThread", "onPreviewFrame");
-        long start = System.currentTimeMillis();
         callbackCount++;
-//        camera.addCallbackBuffer(data);
+        camera.addCallbackBuffer(data);
 //        byte[] nv12 = new byte[data.length];
 //        splitYuv(data, nv12, mSize.width, mSize.height, mDataSize);
         long mid = System.currentTimeMillis();
         FFmpegManager.getInstance().enqueueFrame(data);
-        Log.i("CameraThread", "onPreviewFrame cost:" + (System.currentTimeMillis() - start) + " mid:" + (System.currentTimeMillis() - mid));
     }
 
     /**
