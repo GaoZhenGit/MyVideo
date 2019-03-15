@@ -28,4 +28,10 @@ public class FFmpegManager {
     private native int videoOnFrame(byte[] data);
 
     public native int endVideoEncode();
+
+    public native int startAudioEncode(int dataLen, String fileName);
+
+    public native int audioOnFrame(byte[] data);
+
+    public native int endAudioEncode();
 }

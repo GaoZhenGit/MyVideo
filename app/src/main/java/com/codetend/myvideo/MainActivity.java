@@ -9,6 +9,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Toast;
 
+import com.codetend.myvideo.video.AudioThread;
 import com.codetend.myvideo.video.CameraThread;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class MainActivity extends AppCompatActivity {
     private CameraThread cameraThread;
     private List<Camera.Size> mCameraSizeList;
     private Camera.Size mSelectSize;
+    private AudioThread audioThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void test(View view) {
-        FFmpegManager.getInstance().endEncode();
+
     }
 
     @Override
@@ -83,5 +85,22 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, item.getTitle() + " selected", Toast.LENGTH_SHORT).show();
         }
         return true;
+    }
+
+    public void startAudio(View view) {
+        if (audioThread == null) {
+            audioThread = new AudioThread();
+        } else {
+            audioThread.finish();
+            audioThread = new AudioThread();
+        }
+        audioThread.start();
+    }
+
+    public void stopAudio(View view) {
+        if (audioThread != null) {
+            audioThread.finish();
+            audioThread = null;
+        }
     }
 }

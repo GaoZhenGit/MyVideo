@@ -45,3 +45,21 @@ AVStream *add_video_steam(AVFormatContext *avFormatContext, AVCodecContext *code
     }
     return steam;
 }
+
+AVStream *add_audio_steam(AVFormatContext *avFormatContext, AVCodecContext *codecContext) {
+    AVStream *steam = avformat_new_stream(avFormatContext, NULL);
+    if (!steam) {
+        LOGE("Could not allocate stream");
+        return NULL;
+    }
+    steam->id = avFormatContext->nb_streams - 1;
+    steam->time_base = (AVRational){ 1, codecContext->sample_rate };
+    if (avFormatContext->oformat->flags & AVFMT_GLOBALHEADER)
+        codecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+    int ret = avcodec_parameters_from_context(steam->codecpar, codecContext);
+    if (ret < 0) {
+        LOGE("Could not copy the stream parameters\n");
+        return NULL;
+    }
+    return steam;
+}

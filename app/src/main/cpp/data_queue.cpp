@@ -42,8 +42,10 @@ data_node *data_queue::pop() {
 
 void data_queue::free(data_node *&node) {
     if (node) {
-        delete[] node->data;
-        node->data = NULL;
+        if (node->data) {
+            delete[] node->data;
+            node->data = NULL;
+        }
         delete node;
         node = NULL;
     }

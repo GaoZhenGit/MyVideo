@@ -5,6 +5,8 @@ find_library(android-lib android)
 
 add_library(native-lib
         SHARED
+        src/main/cpp/audio_encode.h
+        src/main/cpp/audio_encode.cpp
         src/main/cpp/video_encode.h
         src/main/cpp/video_encode.cpp
         src/main/cpp/data_queue.h

@@ -29,7 +29,7 @@ int video_pts_i;
 int queue_running = 0;
 AVDictionary *opt = NULL;
 data_queue *video_data_queue = NULL;
-pthread_t consume_thread;
+static pthread_t consume_thread;
 
 #define TIME_BASE_FIELD 15
 

@@ -38,4 +38,6 @@ void add_stream(OutputStream *ost, AVFormatContext *oc, AVCodec **codec, enum AV
 
 AVStream *add_video_steam(AVFormatContext *oc, AVCodecContext *c);
 
+AVStream *add_audio_steam(AVFormatContext *oc, AVCodecContext *c);
+
 #endif //MYVIDEO_MUXER_H
