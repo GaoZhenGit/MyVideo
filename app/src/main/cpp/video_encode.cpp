@@ -107,7 +107,7 @@ jint Java_com_codetend_myvideo_FFmpegManager_startVideoEncode(
 
     video_data_queue = create_data_queue();
 
-    pthread_create(&consume_thread, NULL, consume, 0);
+    pthread_create(&consume_thread, NULL, video_consume, 0);
     return 1;
 }
 
@@ -182,7 +182,7 @@ static void video_encode(AVCodecContext *enc_ctx, AVFrame *frame, AVPacket *pkt,
     }
 }
 
-void *consume(void *) {
+void *video_consume(void *) {
     queue_running = 1;
     int left = 1;
     while (queue_running || left) {

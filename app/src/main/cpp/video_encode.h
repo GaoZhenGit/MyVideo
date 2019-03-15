@@ -45,7 +45,7 @@ Java_com_codetend_myvideo_FFmpegManager_endVideoEncode(JNIEnv *env, jobject inst
 
 }
 
-void *consume(void *p);
+void *video_consume(void *p);
 
 //分离yuv中的uv分量，将u分量和v分量放在按照顺序连续排列，而非交叉
 static void splitYuv(uint8_t *nv21, uint8_t *nv12);
