@@ -16,7 +16,7 @@ public class AudioThread extends Thread {
     //因此可以设置每个样本的分辨率为16位或者8位，16位将占用更多的空间和处理能力,表示的音频也更加接近真实。
     private static final int mAudioFormat = AudioFormat.ENCODING_PCM_16BIT;
     //指定缓冲区大小。调用AudioRecord类的getMinBufferSize方法可以获得。
-    private int mBufferSizeInBytes = AudioRecord.getMinBufferSize(mSampleRateInHz, mChannelConfig, mAudioFormat);//计算最小缓冲区
+    private int mBufferSizeInBytes = AudioRecord.getMinBufferSize(mSampleRateInHz, mChannelConfig, mAudioFormat) * 2;//计算最小缓冲区
     //创建AudioRecord。AudioRecord类实际上不会保存捕获的音频，因此需要手动创建文件并保存下载。
     private AudioRecord mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mSampleRateInHz, mChannelConfig,
             mAudioFormat, mBufferSizeInBytes);//创建AudioRecorder对象
@@ -33,6 +33,12 @@ public class AudioThread extends Thread {
         byte[] buffer = new byte[mBufferSizeInBytes];
         while (isReading) {
             mAudioRecord.read(buffer, 0, mBufferSizeInBytes);
+//            int count = mBufferSizeInBytes / 4096;
+//            for (int i = 0; i < count; i++) {
+//                byte[] d = new byte[4096];
+//                System.arraycopy(buffer, i * 4096, d, 0, 4096);
+//                FFmpegManager.getInstance().audioOnFrame(d);
+//            }
             FFmpegManager.getInstance().audioOnFrame(buffer);
         }
     }

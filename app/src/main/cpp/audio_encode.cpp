@@ -74,18 +74,23 @@ jint Java_com_codetend_myvideo_FFmpegManager_startAudioEncode(JNIEnv *env, jobje
 //        LOGE("file open fail!");
 //        return -7;
 //    }
-    env->ReleaseStringUTFChars(_file_name, file_name);
     audio_data_queue = create_data_queue();
     audio_pts_i = 0;
 
     //fmt s16 转 fltp, 因为aac只支持fltp
     swr = swr_alloc();
-    av_opt_set_int(swr, "in_channel_layout", audio_codec_context->channel_layout, NULL);
-    av_opt_set_int(swr, "out_channel_layout", audio_codec_context->channel_layout, NULL);
-    av_opt_set_int(swr, "in_sample_rate", audio_codec_context->sample_rate, NULL);
-    av_opt_set_int(swr, "out_sample_rate", audio_codec_context->sample_rate, NULL);
-    av_opt_set_sample_fmt(swr, "in_sample_fmt", AV_SAMPLE_FMT_S16, NULL);
-    av_opt_set_sample_fmt(swr, "out_sample_fmt", AV_SAMPLE_FMT_FLTP, NULL);
+    ret = 0;
+    ret += av_opt_set_int(swr, "in_channel_layout", audio_codec_context->channel_layout, NULL);
+    ret += av_opt_set_int(swr, "out_channel_layout", audio_codec_context->channel_layout, NULL);
+    ret += av_opt_set_int(swr, "in_sample_rate", audio_codec_context->sample_rate, NULL);
+    ret += av_opt_set_int(swr, "out_sample_rate", audio_codec_context->sample_rate, NULL);
+    ret += av_opt_set_sample_fmt(swr, "in_sample_fmt", AV_SAMPLE_FMT_S16, NULL);
+    ret += av_opt_set_sample_fmt(swr, "out_sample_fmt", AV_SAMPLE_FMT_FLTP, NULL);
+    if (ret == 0) {
+        LOGI("swr set success");
+    } else {
+        LOGE("swr set fail");
+    }
     swr_init(swr);
 
     if (audio_fmt->audio_codec != AV_CODEC_ID_NONE) {
@@ -112,7 +117,9 @@ jint Java_com_codetend_myvideo_FFmpegManager_startAudioEncode(JNIEnv *env, jobje
     }
 
     pthread_create(&consume_thread, NULL, audio_consume, 0);
-    LOGI("audio encode start success");
+    env->ReleaseStringUTFChars(_file_name, file_name);
+    frame_data_size = audio_codec_context->frame_size * audio_codec_context->channels * 2;
+    LOGI("audio encode start success, frame size:%d", frame_data_size);
     return 1;
 }
 
@@ -153,7 +160,11 @@ jint Java_com_codetend_myvideo_FFmpegManager_audioOnFrame(JNIEnv *env, jobject i
     LOGI("=====================on audio frame start=====================");
     jbyte *dataI = env->GetByteArrayElements(data_, NULL);
     uint8_t *data = (uint8_t *) dataI;
-    audio_data_queue->add(data, frame_len);
+//    audio_data_queue->add(data, frame_len);
+    int count = frame_len / frame_data_size;
+    for (int i = 0; i < count; ++i) {
+        audio_data_queue->add(&(data[i * frame_data_size]), frame_data_size);
+    }
     LOGI("=====================audio frame finish =====================");
     env->ReleaseByteArrayElements(data_, dataI, 0);
     return 1;
@@ -186,14 +197,20 @@ void *audio_consume(void *) {
                 LOGE("frame writeable fail:%d,%s", ret, av_err2str(ret));
             }
 
+            //多声道
             uint8_t *outs[2];
-            outs[0] = new uint8_t[frame_len];
-            outs[1] = new uint8_t[frame_len];
-            ret = swr_convert(swr, (uint8_t **) &outs, frame_len * 4,
-                              (const uint8_t **) &node->data, frame_len / 4);
+            outs[0] = new uint8_t[audio_codec_context->frame_size]{0};
+            outs[1] = new uint8_t[audio_codec_context->frame_size]{0};
+            // 因为ffmpeg 的frame_size 默认为1024,所以一次采样次数至少为1024次，由于一次采集两个声道，每个声道占两个字节，
+            // 采集1024次就是1024*2*2=4096个字节，所以麦克风应该一次送来4096个字节
+            // 这里的单位是sample，所以使用frame_size，为1024
+            ret = swr_convert(swr, (uint8_t **) &outs, audio_codec_context->frame_size,
+                              (const uint8_t **) &node->data, audio_codec_context->frame_size);
             if (ret < 0) {
                 LOGE("Error while converting\n");
                 continue;
+            } else {
+                LOGI("swr_convert count:%d", ret);
             }
             audio_frame->data[0] = outs[0];
             audio_frame->data[1] = outs[1];
@@ -211,7 +228,6 @@ void *audio_consume(void *) {
             delete[] outs[1];
 
             audio_pts_i += audio_frame->nb_samples;
-//            audio_pts_i++;
             LOGI("audio_consume end:%d, pts:%d", audio_pts_i, audio_frame->pts);
         }
     }

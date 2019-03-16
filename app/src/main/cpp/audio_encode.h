@@ -31,7 +31,7 @@ uint32_t audio_pts_i;
 AVFormatContext* audio_format_context = NULL;
 AVOutputFormat* audio_fmt = NULL;
 AVStream* audio_stream = NULL;
-
+int frame_data_size;
 
 SwrContext *swr;
 static pthread_t consume_thread;
