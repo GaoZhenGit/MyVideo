@@ -3,8 +3,6 @@ package com.codetend.myvideo.video;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 
 import com.codetend.myvideo.FFmpegManager;
@@ -27,7 +25,7 @@ public class AudioThread extends Thread {
     @Override
     public void run() {
         mAudioRecord.startRecording();
-        int ret = FFmpegManager.getInstance().startAudioEncode(mBufferSizeInBytes, "/sdcard/demo.mp4");
+        int ret = FFmpegManager.getInstance().startAudioEncode(mBufferSizeInBytes, "/sdcard/demo.aac");
         if (ret < 0) {
             Log.e("AudioThread", "audio init fail");
             return;
@@ -44,14 +42,7 @@ public class AudioThread extends Thread {
         if (mAudioRecord != null) {
             mAudioRecord.stop();
             mAudioRecord.release();
-            Handler handler = new Handler(Looper.getMainLooper());
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    FFmpegManager.getInstance().endAudioEncode();
-                }
-            },2000);
-
+            FFmpegManager.getInstance().endAudioEncode();
         }
     }
 }

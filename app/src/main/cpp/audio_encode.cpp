@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include "audio_encode.h"
 
 static int check_sample_fmt(const AVCodec *codec) {
@@ -39,7 +40,7 @@ jint Java_com_codetend_myvideo_FFmpegManager_startAudioEncode(JNIEnv *env, jobje
         return -2;
     }
     /* put sample parameters */
-    audio_codec_context->bit_rate = 64000;
+    audio_codec_context->bit_rate = 96000;
 
     /* check that the encoder supports s16 pcm input */
     audio_codec_context->sample_fmt = AV_SAMPLE_FMT_FLTP;
@@ -110,7 +111,7 @@ jint Java_com_codetend_myvideo_FFmpegManager_startAudioEncode(JNIEnv *env, jobje
         return -1;
     }
 
-//    pthread_create(&consume_thread, NULL, audio_consume, 0);
+    pthread_create(&consume_thread, NULL, audio_consume, 0);
     LOGI("audio encode start success");
     return 1;
 }
@@ -153,7 +154,6 @@ jint Java_com_codetend_myvideo_FFmpegManager_audioOnFrame(JNIEnv *env, jobject i
     jbyte *dataI = env->GetByteArrayElements(data_, NULL);
     uint8_t *data = (uint8_t *) dataI;
     audio_data_queue->add(data, frame_len);
-    audio_consume(NULL);
     LOGI("=====================audio frame finish =====================");
     env->ReleaseByteArrayElements(data_, dataI, 0);
     return 1;
@@ -162,7 +162,8 @@ jint Java_com_codetend_myvideo_FFmpegManager_audioOnFrame(JNIEnv *env, jobject i
 void *audio_consume(void *) {
     audio_queue_running = 1;
     int left = 1;
-//    while (audio_queue_running || left) {
+    usleep(200 * 1000);
+    while (audio_queue_running || left) {
         data_node *node = audio_data_queue->pop();
         left = node != NULL;
         if (node) {
@@ -171,7 +172,7 @@ void *audio_consume(void *) {
             audio_frame = av_frame_alloc();
             if (!audio_frame) {
                 LOGE("Could not allocate audio_frame\n");
-                return NULL;
+                continue;
             }
             audio_frame->nb_samples = audio_codec_context->frame_size;
             audio_frame->format = audio_codec_context->sample_fmt;
@@ -185,7 +186,6 @@ void *audio_consume(void *) {
                 LOGE("frame writeable fail:%d,%s", ret, av_err2str(ret));
             }
 
-
             uint8_t *outs[2];
             outs[0] = new uint8_t[frame_len];
             outs[1] = new uint8_t[frame_len];
@@ -193,27 +193,29 @@ void *audio_consume(void *) {
                               (const uint8_t **) &node->data, frame_len / 4);
             if (ret < 0) {
                 LOGE("Error while converting\n");
-                return NULL;
+                continue;
             }
             audio_frame->data[0] = outs[0];
             audio_frame->data[1] = outs[1];
-            audio_frame->pts = av_rescale_q(audio_pts_i,
-                                            (AVRational) {1, audio_codec_context->sample_rate},
-                                            audio_codec_context->time_base);
+//            audio_frame->pts = av_rescale_q(audio_pts_i,
+//                                            (AVRational) {1, audio_codec_context->sample_rate},
+//                                            audio_codec_context->time_base);
 //            audio_frame->pts = audio_pts_i * (audio_codec_context->frame_size * 1000 / audio_codec_context->sample_rate);
 
             encode(audio_codec_context, audio_frame, audio_pkt, audio_ofd);
             audio_data_queue->free(node);
 
+            audio_frame->data[0] = NULL;
+            audio_frame->data[1] = NULL;
+            delete[] outs[0];
+            delete[] outs[1];
+
             audio_pts_i += audio_frame->nb_samples;
 //            audio_pts_i++;
             LOGI("audio_consume end:%d, pts:%d", audio_pts_i, audio_frame->pts);
         }
-//    }
-    return NULL;
-}
+    }
 
-jint Java_com_codetend_myvideo_FFmpegManager_endAudioEncode(JNIEnv *env, jobject instance) {
     encode(audio_codec_context, NULL, audio_pkt, audio_ofd);
     //写入文件尾部
     av_write_trailer(audio_format_context);
@@ -233,7 +235,15 @@ jint Java_com_codetend_myvideo_FFmpegManager_endAudioEncode(JNIEnv *env, jobject
     audio_fmt = NULL;
 //    av_dict_free(&opt);
 //    opt = NULL;
-//    free_data_queue(audio_data_queue);
+    free_data_queue(audio_data_queue);
     LOGI("end encode!");
+
+    return NULL;
+}
+
+jint Java_com_codetend_myvideo_FFmpegManager_endAudioEncode(JNIEnv *env, jobject instance) {
+    audio_queue_running = 0;
+    void *tret;
+    pthread_join(consume_thread, &tret);
     return 1;
 }
