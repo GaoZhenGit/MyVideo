@@ -34,4 +34,12 @@ public class FFmpegManager {
     public native int audioOnFrame(byte[] data);
 
     public native int endAudioEncode();
+
+    public native int setAllOption(String key, String value);
+
+    public native int startAllEncode();
+
+    public native int allOnFrame(byte[] data, boolean isVideo);
+
+    public native int endAllEncode();
 }

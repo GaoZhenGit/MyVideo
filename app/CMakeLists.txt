@@ -13,6 +13,8 @@ add_library(native-lib
         src/main/cpp/data_queue.cpp
         src/main/cpp/muxer.h
         src/main/cpp/muxer.cpp
+        src/main/cpp/video_audio_mix.h
+        src/main/cpp/video_audio_mix.cpp
         )
 
 add_library(avutil

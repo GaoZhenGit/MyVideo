@@ -103,4 +103,10 @@ public class MainActivity extends AppCompatActivity {
             audioThread = null;
         }
     }
+
+    public void startAll(View view) {
+    }
+
+    public void stopAll(View view) {
+    }
 }
