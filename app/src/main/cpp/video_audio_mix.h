@@ -81,9 +81,6 @@ namespace mix {
     pthread_t *audio_thread;
     pthread_t *video_thread;
 
-    data_queue *audio_queue;
-    data_queue *video_queue;
-
     int set_audio_code_context_param();
     int set_video_code_context_param();
     int prepare_audio_swr();

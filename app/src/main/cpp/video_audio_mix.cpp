@@ -9,19 +9,27 @@ jint Java_com_codetend_myvideo_FFmpegManager_setAllOption(
 
     if (!strcmp(key, "width")) {
         mix::width = atoi(value);
+        LOGI("width set:%d", mix::width);
     } else if (!strcmp(key, "height")) {
         mix::height = atoi(value);
+        LOGI("height set:%d", mix::height);
     } else if (!strcmp(key, "output")) {
         mix::output_path = new char[strlen(value)];
         strcpy(mix::output_path, value);
+        LOGI("output set:%s", mix::output_path);
     } else if (!strcmp(key, "audio_data_size")) {
         mix::audio_data_size = atoi(value);
+        LOGI("audio_data_size set:%d", mix::audio_data_size);
     } else if (!strcmp(key, "fps")) {
         mix::fps = atoi(value);
+        LOGI("fps set:%d", mix::fps);
+    } else {
+        LOGI("nothing set");
     }
 
     env->ReleaseStringUTFChars(_key, key);
     env->ReleaseStringUTFChars(_value, value);
+    return 1;
 }
 
 jint Java_com_codetend_myvideo_FFmpegManager_startAllEncode(JNIEnv *env, jobject instance) {
@@ -71,21 +79,35 @@ jint Java_com_codetend_myvideo_FFmpegManager_startAllEncode(JNIEnv *env, jobject
     //6.添加音视频流
     if (fmt->audio_codec != AV_CODEC_ID_NONE) {
         audio_stream = add_audio_steam(format_context, audio_codec_context);
-        LOGI("add steam success:%s", avcodec_get_name(fmt->audio_codec));
+        LOGI("add steam success:%s, index:%d", avcodec_get_name(fmt->audio_codec), audio_stream->index);
     }
     if (fmt->video_codec != AV_CODEC_ID_NONE) {
         video_stream = add_video_steam(format_context, video_codec_context);
-        LOGI("add steam success:%s", avcodec_get_name(fmt->video_codec));
+        LOGI("add steam success:%s, index:%d", avcodec_get_name(fmt->video_codec), video_stream->index);
     }
-    //7.写入流信息
-    av_dump_format(format_context, audio_stream->id, output_path, 1);
-    av_dump_format(format_context, video_stream->id, output_path, 1);
-    //8.音频转换器初始化
-    ret = prepare_audio_swr();
-    if (ret < 0) {
+
+    //7.初始化音视频pkt
+    audio_pkt = av_packet_alloc();
+    if (!audio_pkt) {
+        LOGE("could not allocate the audio packet\n");
         return -6;
     }
-    //9.打开文件流
+    video_pkt = av_packet_alloc();
+    if (!video_pkt) {
+        LOGE("could not allocate the video packet\n");
+        return -7;
+    }
+
+    //8.写入流信息
+    av_dump_format(format_context, audio_stream->id, output_path, 1);
+    av_dump_format(format_context, video_stream->id, output_path, 1);
+    //9.音频转换器初始化
+    ret = prepare_audio_swr();
+    if (ret < 0) {
+        return -8;
+    }
+    audio_frame_size = audio_codec_context->frame_size * audio_codec_context->channels * 2;
+    //10.打开文件流
     if (!(fmt->flags & AVFMT_NOFILE)) {
         ret = avio_open(&format_context->pb, output_path, AVIO_FLAG_WRITE);
         if (ret < 0) {
@@ -97,24 +119,24 @@ jint Java_com_codetend_myvideo_FFmpegManager_startAllEncode(JNIEnv *env, jobject
             avcodec_free_context(&audio_codec_context);
             audio_codec_context = NULL;
             LOGE("avio_open fail");
-            return 7;
+            return -9;
         }
         LOGI("avio_open success");
     }
-    //10.写入头部信息
+    //11.写入头部信息
     ret = avformat_write_header(format_context, &opt);
     LOGI("write header success");
     if (ret < 0) {
         LOGE("Error occurred when opening output file:%d, %s\n", ret, av_err2str(ret));
-        return -8;
+        return -10;
     }
 
-    //11.初始化音视频数据消费队列
-    audio_queue = create_data_queue();
-    video_queue = create_data_queue();
+    //12.初始化音视频数据消费队列
+    audio_data_queue = create_data_queue();
+    video_data_queue = create_data_queue();
     video_data_queue->set_copy_fun(splitYuv);
 
-    //12.启动音视频消费线程
+    //13.启动音视频消费线程
     audio_thread = new pthread_t();
     video_thread = new pthread_t();
     pthread_create(audio_thread, NULL, mix::audio_consume, 0);
@@ -181,8 +203,8 @@ jint Java_com_codetend_myvideo_FFmpegManager_endAllEncode(JNIEnv *env, jobject i
     av_dict_free(&opt);
     opt = NULL;
 
-    free_data_queue(audio_queue);
-    free_data_queue(video_queue);
+    free_data_queue(audio_data_queue);
+    free_data_queue(video_data_queue);
 
     delete audio_thread;
     audio_thread = NULL;
