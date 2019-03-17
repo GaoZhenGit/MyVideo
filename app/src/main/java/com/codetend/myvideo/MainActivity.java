@@ -9,6 +9,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Toast;
 
+import com.codetend.myvideo.mix.MixHelper;
 import com.codetend.myvideo.video.AudioThread;
 import com.codetend.myvideo.video.CameraThread;
 
@@ -22,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
     private List<Camera.Size> mCameraSizeList;
     private Camera.Size mSelectSize;
     private AudioThread audioThread;
+    private MixHelper mixHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,8 +107,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startAll(View view) {
+        if (mSelectSize == null) {
+            return;
+        }
+        if (mixHelper != null) {
+            mixHelper.finish();
+        }
+        mixHelper = new MixHelper();
+        mixHelper.setPreviewSize(mSelectSize);
+        mixHelper.setSurfaceView(mPlayView);
+        mixHelper.start();
     }
 
     public void stopAll(View view) {
+        if (mixHelper != null) {
+            mixHelper.finish();
+        }
     }
 }

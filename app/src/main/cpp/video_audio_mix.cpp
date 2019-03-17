@@ -36,7 +36,7 @@ jint Java_com_codetend_myvideo_FFmpegManager_startAllEncode(JNIEnv *env, jobject
     int ret;
     //1.为读写文件生成formatContext
     avformat_alloc_output_context2(&format_context, NULL, NULL, output_path);
-    if (format_context) {
+    if (!format_context) {
         LOGE("Could not deduce output format from file extension: using MPEG.\n");
         avformat_alloc_output_context2(&format_context, NULL, "mpeg", output_path);
     }
@@ -46,8 +46,6 @@ jint Java_com_codetend_myvideo_FFmpegManager_startAllEncode(JNIEnv *env, jobject
     }
     //2.强行变更视频、音频编码格式
     fmt = format_context->oformat;
-    fmt->video_codec = AV_CODEC_ID_MPEG4;
-    fmt->audio_codec = AV_CODEC_ID_AAC;
     //3.查看是否支持相应的音视频编码格式
     audio_codec = avcodec_find_encoder(fmt->audio_codec);
     video_codec = avcodec_find_encoder(fmt->video_codec);
