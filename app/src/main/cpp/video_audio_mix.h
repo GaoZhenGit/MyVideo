@@ -23,6 +23,10 @@ JNIEXPORT jint JNICALL
 Java_com_codetend_myvideo_FFmpegManager_setAllOption(
         JNIEnv *env, jobject instance, jstring key, jstring value);
 
+JNIEXPORT jstring JNICALL
+Java_com_codetend_myvideo_FFmpegManager_getAllOption(
+        JNIEnv *env, jobject instance, jstring key);
+
 JNIEXPORT jint JNICALL
 Java_com_codetend_myvideo_FFmpegManager_startAllEncode(
         JNIEnv *env, jobject instance);

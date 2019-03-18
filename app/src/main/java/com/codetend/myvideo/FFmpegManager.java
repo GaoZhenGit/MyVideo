@@ -37,6 +37,8 @@ public class FFmpegManager {
 
     public native int setAllOption(String key, String value);
 
+    public native String getAllOption(String key);
+
     public native int startAllEncode();
 
     public native int allOnFrame(byte[] data, boolean isVideo);

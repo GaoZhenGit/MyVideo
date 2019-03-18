@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void test(View view) {
-
+        FFmpegManager.getInstance().getAllOption("width");
     }
 
     @Override

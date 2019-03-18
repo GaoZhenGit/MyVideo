@@ -32,6 +32,41 @@ jint Java_com_codetend_myvideo_FFmpegManager_setAllOption(
     return 1;
 }
 
+jstring Java_com_codetend_myvideo_FFmpegManager_getAllOption(
+        JNIEnv *env, jobject instance, jstring _key) {
+    const char *key = env->GetStringUTFChars(_key, 0);
+    jstring result = NULL;
+    char tmp[20];
+    if (!strcmp(key, "width")) {
+        sprintf(tmp, "%d", mix::width);
+        const char *ret = tmp;
+        result = env->NewStringUTF(ret);
+    } else if (!strcmp(key, "height")) {
+        sprintf(tmp, "%d", mix::height);
+        const char *ret = tmp;
+        result = env->NewStringUTF(ret);
+    } else if (!strcmp(key, "output")) {
+        const char *ret = mix::output_path;
+        result = env->NewStringUTF(ret);
+    } else if (!strcmp(key, "audio_data_size")) {
+        sprintf(tmp, "%d", mix::audio_data_size);
+        const char *ret = tmp;
+        result = env->NewStringUTF(ret);
+    } else if (!strcmp(key, "fps")) {
+        sprintf(tmp, "%d", mix::fps);
+        const char *ret = tmp;
+        result = env->NewStringUTF(ret);
+    } if (!strcmp(key, "audio_frame_size")) {
+        sprintf(tmp, "%d", mix::audio_frame_size);
+        const char *ret = tmp;
+        result = env->NewStringUTF(ret);
+    } else {
+        LOGI("nothing get");
+    }
+    env->ReleaseStringUTFChars(_key, key);
+    return result;
+}
+
 jint Java_com_codetend_myvideo_FFmpegManager_startAllEncode(JNIEnv *env, jobject instance) {
     int ret;
     //1.为读写文件生成formatContext
