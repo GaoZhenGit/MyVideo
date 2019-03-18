@@ -15,23 +15,38 @@ public class MixAudioThread extends Thread {
     //指定音频量化位数 ,在AudioFormaat类中指定了以下各种可能的常量。通常我们选择ENCODING_PCM_16BIT和ENCODING_PCM_8BIT PCM代表的是脉冲编码调制，它实际上是原始音频样本。
     //因此可以设置每个样本的分辨率为16位或者8位，16位将占用更多的空间和处理能力,表示的音频也更加接近真实。
     private static final int mAudioFormat = AudioFormat.ENCODING_PCM_16BIT;
-    //指定缓冲区大小。调用AudioRecord类的getMinBufferSize方法可以获得。
-    private int mBufferSizeInBytes = AudioRecord.getMinBufferSize(mSampleRateInHz, mChannelConfig, mAudioFormat) * 2;//计算最小缓冲区
-    //创建AudioRecord。AudioRecord类实际上不会保存捕获的音频，因此需要手动创建文件并保存下载。
-    private AudioRecord mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mSampleRateInHz, mChannelConfig,
-            mAudioFormat, mBufferSizeInBytes);//创建AudioRecorder对象
+    private AudioRecord mAudioRecord = null;
     private boolean isReading = true;
+    // native能处理的最小的buffer size，实际需要整数倍，不然音频会速度不对
+    private int mSuggestBufferSize;
+    // 实际录音的buffer size
+    private int mRealBufferSize;
+    // 麦克风最小的buffer size
+    private int mMinBufferSize;
 
-    public MixAudioThread() {
-        FFmpegManager.getInstance().setAllOption("audio_data_size", String.valueOf(mBufferSizeInBytes));
+    public void init() {
+        mMinBufferSize = AudioRecord.getMinBufferSize(mSampleRateInHz, mChannelConfig, mAudioFormat);//计算最小缓冲区
+        mSuggestBufferSize = Integer.parseInt(FFmpegManager.getInstance().getAllOption("audio_frame_size"));
+        if (mSuggestBufferSize > mMinBufferSize) {
+            mRealBufferSize = mSuggestBufferSize;
+        } else {
+            mRealBufferSize = mSuggestBufferSize;
+//            while (mRealBufferSize < mMinBufferSize) {
+//                mRealBufferSize *= 2;
+//            }
+        }
+        FFmpegManager.getInstance().setAllOption("audio_data_size", String.valueOf(mRealBufferSize));
+        mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mSampleRateInHz, mChannelConfig,
+                mAudioFormat, mRealBufferSize);//创建AudioRecorder对象
     }
 
     @Override
     public void run() {
+        init();
         mAudioRecord.startRecording();
-        byte[] buffer = new byte[mBufferSizeInBytes];
+        byte[] buffer = new byte[mRealBufferSize];
         while (isReading) {
-            mAudioRecord.read(buffer, 0, mBufferSizeInBytes);
+            mAudioRecord.read(buffer, 0, mRealBufferSize);
             FFmpegManager.getInstance().allOnFrame(buffer, false);
         }
     }

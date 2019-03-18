@@ -48,7 +48,7 @@ public class MixHelper {
     private void init() {
         mixAudioThread = new MixAudioThread();
         mixVideoThread = new MixVideoThread();
-        mixVideoThread.setFps(30);
+        mixVideoThread.setFps(15);
         mixVideoThread.setPreviewSize(mSize);
         mixVideoThread.setSurfaceView(mSurfaceView);
     }
