@@ -366,9 +366,9 @@ void *mix::audio_consume(void *) {
             }
             audio_frame->data[0] = outs[0];
             audio_frame->data[1] = outs[1];
-//            audio_frame->pts = av_rescale_q(audio_pts_i,
-//                                            (AVRational) {1, audio_codec_context->sample_rate},
-//                                            audio_codec_context->time_base);
+            audio_frame->pts = av_rescale_q(audio_pts_i,
+                                            (AVRational) {1, audio_codec_context->sample_rate},
+                                            audio_codec_context->time_base);
 //            audio_frame->pts = audio_pts_i * (audio_codec_context->frame_size * 1000 / audio_codec_context->sample_rate);
 
             audio_encode(audio_codec_context, audio_frame, audio_pkt, NULL);
