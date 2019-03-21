@@ -48,7 +48,7 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
     }
 
     public static List<Camera.Size> getSupportPreviewSize() {
-        Camera camera = Camera.open(0);
+        Camera camera = Camera.open(1);
         Camera.Parameters parameters = camera.getParameters();
         List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
         camera.release();
@@ -61,9 +61,10 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
 
     private void init() {
         try {
-            mCamera = Camera.open(0);
+            mCamera = Camera.open(1);
             Camera.Parameters parameters = mCamera.getParameters();
-            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+//            前置摄像头不支持自动对焦
+//            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
             parameters.setPreviewFormat(ImageFormat.NV21);
             parameters.setPreviewFpsRange(15 * 1000, 15 * 1000);
             parameters.setAutoWhiteBalanceLock(true);

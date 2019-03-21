@@ -65,7 +65,8 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void test(View view) {
-        FFmpegManager.getInstance().getAllOption("width");
+//        FFmpegManager.getInstance().getAllOption("width");
+        mixHelper.startRecord();
     }
 
     @Override
@@ -106,8 +107,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void startAll(View view) {
+    public void prepareAll(View view) {
         if (mSelectSize == null) {
+            Toast.makeText(this, "plz select preview size", Toast.LENGTH_SHORT).show();
             return;
         }
         if (mixHelper != null) {
@@ -116,7 +118,13 @@ public class MainActivity extends AppCompatActivity {
         mixHelper = new MixHelper();
         mixHelper.setPreviewSize(mSelectSize);
         mixHelper.setSurfaceView(mPreviewView);
-        mixHelper.start();
+        mixHelper.prepare();
+    }
+
+    public void startAll(View view) {
+        if (mixHelper != null) {
+            mixHelper.startRecord();
+        }
     }
 
     public void stopAll(View view) {

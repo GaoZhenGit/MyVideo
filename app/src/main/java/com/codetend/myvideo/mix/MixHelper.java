@@ -19,18 +19,23 @@ public class MixHelper {
         mSize = size;
     }
 
-    public void start() {
+    public void prepare() {
         if (mixVideoThread == null || mixAudioThread == null) {
             init();
         } else {
             finish();
             init();
         }
-        FFmpegManager.getInstance().setAllOption("output", "sdcard/mix.avi");
+        FFmpegManager.getInstance().setAllOption("output", "sdcard/mix.mp4");
         if(FFmpegManager.getInstance().startAllEncode() > 0) {
             mixVideoThread.start();
             mixAudioThread.start();
         }
+    }
+
+    public void startRecord() {
+        mixVideoThread.start = true;
+        mixAudioThread.start = true;
     }
 
     public void finish() {

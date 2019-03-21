@@ -45,14 +45,6 @@ public class MixVideoThread extends Thread implements Camera.PreviewCallback {
         Looper.loop();
     }
 
-    public static List<Camera.Size> getSupportPreviewSize() {
-        Camera camera = Camera.open(0);
-        Camera.Parameters parameters = camera.getParameters();
-        List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
-        camera.release();
-        return sizes;
-    }
-
     public void setPreviewSize(Camera.Size size) {
         mSize = size;
         FFmpegManager.getInstance().setAllOption("width", String.valueOf(mSize.width));
@@ -68,7 +60,8 @@ public class MixVideoThread extends Thread implements Camera.PreviewCallback {
         try {
             mCamera = Camera.open(1);
             Camera.Parameters parameters = mCamera.getParameters();
-            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+//            前置摄像头不支持自动对焦
+//            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
             parameters.setPreviewFormat(ImageFormat.NV21);
             parameters.setPreviewFpsRange(fps * 1000, fps * 1000);
             parameters.setAutoWhiteBalanceLock(true);
@@ -98,11 +91,14 @@ public class MixVideoThread extends Thread implements Camera.PreviewCallback {
         }
         mMainHandler.removeCallbacks(mRateCountLogger);
     }
+    public boolean start = false;
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
         Log.i("CameraThread", "onPreviewFrame");
         callbackCount++;
         camera.addCallbackBuffer(data);
-        FFmpegManager.getInstance().allOnFrame(data, true);
+        if (start) {
+            FFmpegManager.getInstance().allOnFrame(data, true);
+        }
     }
 }

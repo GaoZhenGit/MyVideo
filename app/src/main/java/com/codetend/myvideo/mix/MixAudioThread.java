@@ -40,6 +40,7 @@ public class MixAudioThread extends Thread {
                 mAudioFormat, mRealBufferSize);//创建AudioRecorder对象
     }
 
+    public boolean start = false;
     @Override
     public void run() {
         init();
@@ -47,7 +48,9 @@ public class MixAudioThread extends Thread {
         byte[] buffer = new byte[mRealBufferSize];
         while (isReading) {
             mAudioRecord.read(buffer, 0, mRealBufferSize);
-            FFmpegManager.getInstance().allOnFrame(buffer, false);
+            if (start) {
+                FFmpegManager.getInstance().allOnFrame(buffer, false);
+            }
         }
     }
 
