@@ -64,8 +64,8 @@ namespace mix {
     AVFormatContext *format_context = NULL;
     AVOutputFormat *fmt = NULL;
 
-    uint32_t audio_pts_i;
-    uint32_t video_pts_i;
+    uint32_t audio_pts_i = 0;
+    uint32_t video_pts_i = 0;
 
     int width = 0;
     int height = 0;

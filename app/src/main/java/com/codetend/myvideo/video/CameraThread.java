@@ -41,7 +41,7 @@ public class CameraThread extends Thread implements Camera.PreviewCallback {
         Looper.prepare();
         mLooper = Looper.myLooper();
         init();
-        FFmpegManager.getInstance().start(mSize.width, mSize.height, "/sdcard/demo.avi");
+        FFmpegManager.getInstance().start(mSize.width, mSize.height, "/sdcard/demo.mp4");
         mCamera.startPreview();
         mMainHandler.post(mRateCountLogger);
         Looper.loop();

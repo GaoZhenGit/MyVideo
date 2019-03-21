@@ -66,7 +66,7 @@ public class MixVideoThread extends Thread implements Camera.PreviewCallback {
 
     private void init() {
         try {
-            mCamera = Camera.open(0);
+            mCamera = Camera.open(1);
             Camera.Parameters parameters = mCamera.getParameters();
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
             parameters.setPreviewFormat(ImageFormat.NV21);

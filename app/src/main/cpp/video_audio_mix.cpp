@@ -262,12 +262,13 @@ int mix::set_audio_code_context_param() {
         LOGE("Could not open codec:%d,%s", ret, av_err2str(ret));
         return -3;
     }
+    audio_pts_i = 0;
     return 1;
 }
 
 int mix::set_video_code_context_param() {
     /* put sample parameters */
-    video_codec_context->bit_rate = 400000;
+    video_codec_context->bit_rate = 1000000;
     /* resolution must be a multiple of two */
     video_codec_context->width = width;
     video_codec_context->height = height;
@@ -299,6 +300,7 @@ int mix::set_video_code_context_param() {
         LOGE("Could not open codec:%d,%s", ret, av_err2str(ret));
         return -1;
     }
+    video_pts_i = 0;
     return 1;
 }
 

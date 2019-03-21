@@ -115,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
         }
         mixHelper = new MixHelper();
         mixHelper.setPreviewSize(mSelectSize);
-        mixHelper.setSurfaceView(mPlayView);
+        mixHelper.setSurfaceView(mPreviewView);
         mixHelper.start();
     }
 
